@@ -7,11 +7,21 @@ from sklearn import metrics
 
 class graph:
 
+    """
+    Class for differential equation problems that may (or may not) be represented with a graph (like SIR models).
+    Each node contains the evolution of a variable over time and the vertices contain the change for a small dt.
+    Any number of nodes and vertices can be added before the simulation where every vertex is computed.
+    """
+
     def __init__(self) -> None:
         self.nodes = {}
         self.vertices = {}
 
     def add_node(self,node):
+        """
+        Method that takes in a node and adds it to the graph's dictionnary of nodes
+        The key for that node will be the name given to the node
+        """
         if isinstance(node,list):
             for i in node:
                 self.nodes[node.name] = node
@@ -19,6 +29,12 @@ class graph:
             self.nodes[node.name] = node
 
     def add_vertex(self,start,finish,const,coeffs,name=None):
+        """
+        Method that takes in the parameters of a vertex to add a vertex from these parameters to the graph's
+        dictionnary of vertices and return nothing.
+        If a name is not given, a random string will be chosen as the key for that vertex.
+        If a starting node, an end node, or coefficients are missing from the graph's nodes, the function will return 0. 
+        """
         names = [i.name for i in self.nodes.values()]
         if (start != None) and start not in names:
             print(f"{start} not there")
@@ -44,8 +60,10 @@ class graph:
                 self.vertices[s] = vertex(start,finish,const,coeffs)
 
     def get_values(self,node):
+        """
+        Method that takes in the name of a node and returns the values of that node in a numpy array.
+        """
         return np.array(self.nodes[node].get_values())
-
 
     def step(self):
         """"
@@ -78,29 +96,49 @@ class graph:
                 self.nodes[key].add_value(value)
 
     def simulate(self,steps):
+        """
+        Method that takes in a number of steps and executes each vertex at every step.
+        """
         self.steps = steps
         for i in range(steps):
             self.step()
 
     def plot_all(self,dt):
+        """
+        Method that takes in the value of dt and plots the values of all nodes over time.
+        """
         t = [dt * i for i in range(self.steps +1)]
         for i in self.nodes.values():
             plt.plot(t,i.get_values(),label=i.name)
 
 class node:
 
+    """
+    Class for a node that is meant to be added to a graph object.
+    """
+
     def __init__(self,name,tag,start=0) -> None:
+        """
+        The init of a node requires a name, a tag, and an initial value.
+        """
         self.name = name
         self.tag = tag
         self.values = [start]
 
     def add_value(self,value):
+        """
+        Method for adding a value at the end of a node's list of values over time.
+        """
         self.values.append(value)
 
     def get_values(self):
         return self.values
 
 class vertex:
+
+    """
+    Class for a vertex that is meant to be added to a graph object.
+    """
 
     def __init__(self,start,finish,const,coeffs) -> None:
         self.start = start
@@ -110,13 +148,30 @@ class vertex:
 
 class model:
 
+    """
+    Class for finding the coefficients of differential equations with Euler's method.
+    """
+
     def __init__(self,initial_state) -> None:
+
+        """
+        The init requires a graph object that will be fit to a certain target.
+        The initial_state will contain the starting values of each node and starting constants for vertices.
+        """
         
         self.initial_state = copy.deepcopy(initial_state)
         self.parameters = self.initial_state.vertices
 
     def fit(self,target,target_node,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
-
+        """
+        This method requires target values, the name of the node for target values, and a number of epochs.
+        It first finds an initial loss between the prediction of the initial_state and the target.
+        Then, it creates a copy of the initial_state for every epoch to change the constants of the vertices using gradient descent.
+        After each epoch, the vertices of the best performing graph will be returned.
+        If indices are given, the loss will be calculated with the predicted values at these indices.
+        A simulate_kwargs can be given so that a child class of graph is given as an initial_state.
+        A start_deltas can also be given to choose the starting step for gradient_descent.
+        """
         new_values = self.parameters.copy()
         use_values = self.parameters.copy()
 
