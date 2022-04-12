@@ -1,11 +1,15 @@
 import numpy as np
 from matplotlib import pyplot as plt
+import random
+from string import ascii_letters
+import copy
+from sklearn import metrics
 
 class graph:
 
     def __init__(self) -> None:
         self.nodes = {}
-        self.vertices = []
+        self.vertices = {}
 
     def add_node(self,node):
         if isinstance(node,list):
@@ -14,7 +18,7 @@ class graph:
         else:
             self.nodes[node.name] = node
 
-    def add_vertex(self,start,finish,const,coeffs):
+    def add_vertex(self,start,finish,const,coeffs,name=None):
         names = [i.name for i in self.nodes.values()]
         if (start != None) and start not in names:
             print(f"{start} not there")
@@ -30,7 +34,18 @@ class graph:
                 return 0
 
         else:
-            self.vertices.append(vertex(start,finish,const,coeffs))
+            if name is not None:
+                self.vertices[name] = vertex(start,finish,const,coeffs)
+
+            else:
+                s = "".join(random.choices(ascii_letters,k=10))
+                while s in self.vertices.keys():
+                    s = "".join(random.choices(ascii_letters,k=10))
+                self.vertices[s] = vertex(start,finish,const,coeffs)
+
+    def get_values(self,node):
+        return np.array(self.nodes[node].get_values())
+
 
     def step(self):
         """"
@@ -46,10 +61,13 @@ class graph:
         final = {i.name:i.get_values()[-1] for i in self.nodes.values()}
         final[None] = 0
 
-        for i in self.vertices:
+        for i in self.vertices.values():
             # the c is the delta that corresponds to the vertex
             c = i.const
+            # print(f"c: {c}")
             for j in i.coeffs:
+                # print(f"j: {j}")
+                # print(f"initial[j]: {initial[j]}")
                 c *= initial[j]
 
             final[i.start] -= c
@@ -89,3 +107,64 @@ class vertex:
         self.finish = finish
         self.coeffs = coeffs
         self.const = const
+
+class model:
+
+    def __init__(self,initial_state) -> None:
+        
+        self.initial_state = copy.deepcopy(initial_state)
+        self.parameters = self.initial_state.vertices
+
+    def fit(self,target,target_node,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
+
+        new_values = self.parameters.copy()
+        use_values = self.parameters.copy()
+
+        if start_deltas is not None:
+            deltas = start_deltas
+
+        else:
+            deltas = {i:j.const/10 for i,j in new_values.items()}
+
+
+        m = copy.deepcopy(self.initial_state)
+        m.simulate(*simulate_kwargs)
+
+        if indices is not None:
+            loss0 = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node).flat[indices],squared=False)
+
+        else:
+            loss0 = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node),squared=False)
+
+        loss1 = loss0
+
+        print(f"starting loss: {loss1}")
+        
+        for i in range(n_epochs):
+            for j in new_values.keys():
+                use_values[j].const += deltas[j]
+                m = copy.deepcopy(self.initial_state)
+                for key,value in use_values.items():
+                    m.vertices[key] = value
+                
+                m.simulate(*simulate_kwargs)
+
+                try:
+                    if indices is not None:
+                        l = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node)[indices],squared=False)
+                    else:
+                        l = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node),squared=False)
+                    if l < loss1:
+                        new_values[j].const = use_values[j].const
+                        loss1 = l
+
+                    else:
+                        deltas[j] = - deltas[j]*(l/loss0)
+                
+                except:
+                    pass
+
+            use_values = new_values.copy()
+        
+        print(f"final loss: {loss1}")
+        return new_values
