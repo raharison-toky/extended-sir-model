@@ -4,6 +4,8 @@ import random
 from string import ascii_letters
 import copy
 from sklearn import metrics
+import concurrent.futures
+from operator import itemgetter
 
 class graph:
 
@@ -222,4 +224,51 @@ class model:
             use_values = new_values.copy()
         
         print(f"final loss: {loss1}")
-        return new_values
+        return new_values,loss1
+
+class general_case:
+
+    """
+    Class for finding the coefficients of differential equations from different starting points.
+    This class tries to find the best local minimum by starting the gradient descent at different points.
+    Multiprocessing reduces the time for that by running multiple optimizations at the same time.
+    """
+
+    def __init__(self,initial_state ,starting_points) -> None:
+        """
+        The init requires a graph object that will be fit to a certain target.
+        The initial_state will contain multiple starting values all to optimize.
+        """
+        self.initial_state = copy.deepcopy(initial_state)
+        self.starting_points = starting_points
+
+    def _fit(self,target,target_node,n_epochs,initial_parameters,indices = None,simulate_kwargs=None,start_deltas=None):
+        """
+        _fit is used to apply the fit method to each starting point
+        """
+        a = copy.deepcopy(self.initial_state)
+        a.vertices = initial_parameters
+        return a.fit(target,target_node,n_epochs,indices,simulate_kwargs,start_deltas)
+
+    def fit(self,target,target_node,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
+        """
+        This method uses multiprocessing to simulteneously fit multiple starting points.
+        It takes in the same arguments as the fit method for a model.
+        It returns the best performing vertices from all the starting points.
+        """
+        vertices = []
+        for i in self.starting_points:
+            v = copy.deepcopy(i.vertices)
+            for key,value in v.items():
+                v[key].const = value
+            vertices.append(v)
+
+        candidates = []
+         
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = [executor.submit(self._fit,target,target_node,n_epochs,i,indices,simulate_kwargs,start_deltas) for i in vertices]
+
+        for f in concurrent.futures.as_completed(results):
+            candidates.append(f.result())
+
+        return max(candidates,key=itemgetter(1))
