@@ -246,9 +246,7 @@ class general_case:
         """
         _fit is used to apply the fit method to each starting point
         """
-        a = copy.deepcopy(self.initial_state)
-        a.vertices = initial_parameters
-        return a.fit(target,target_node,n_epochs,indices,simulate_kwargs,start_deltas)
+        return model(initial_parameters).fit(target,target_node,n_epochs,indices,simulate_kwargs,start_deltas)
 
     def fit(self,target,target_node,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
         """
@@ -256,19 +254,13 @@ class general_case:
         It takes in the same arguments as the fit method for a model.
         It returns the best performing vertices from all the starting points.
         """
-        vertices = []
-        for i in self.starting_points:
-            v = copy.deepcopy(i.vertices)
-            for key,value in v.items():
-                v[key].const = value
-            vertices.append(v)
 
         candidates = []
          
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = [executor.submit(self._fit,target,target_node,n_epochs,i,indices,simulate_kwargs,start_deltas) for i in vertices]
+            results = [executor.submit(self._fit,target,target_node,n_epochs,i,indices,simulate_kwargs,start_deltas) for i in self.starting_points]
 
         for f in concurrent.futures.as_completed(results):
             candidates.append(f.result())
 
-        return max(candidates,key=itemgetter(1))
+        return min(candidates,key=itemgetter(1))
