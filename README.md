@@ -4,7 +4,11 @@
 - general classes for solving differential equations with Euler's method
 - general class for finding the coefficients in problems like the SIR models
 
-## Example
+## Examples
+
+![image](firstwave.png)
+
+SIR model that was made to fit the peak of the second wave in Quebec province.
 
 ![image](secondwave.png)
 

@@ -169,7 +169,7 @@ class model:
         self.initial_state = copy.deepcopy(initial_state)
         self.parameters = self.initial_state.vertices
 
-    def fit(self,target,target_node,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
+    def fit(self,targets,target_nodes,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
         """
         This method requires target values, the name of the node for target values, and a number of epochs.
         It first finds an initial loss between the prediction of the initial_state and the target.
@@ -188,15 +188,21 @@ class model:
         else:
             deltas = {i:j.const/10 for i,j in new_values.items()}
 
-
         m = copy.deepcopy(self.initial_state)
         m.simulate(*simulate_kwargs)
+        loss0 = 0
 
-        if indices is not None:
-            loss0 = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node).flat[indices],squared=False)
+        # to minimize bias towards certain targets, the mean squared error is mean-normalized
+        averages = np.mean(targets,axis=1)
 
-        else:
-            loss0 = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node),squared=False)
+        for target,target_node,mean in zip(targets,target_nodes,averages):
+            if indices is not None:
+                #loss0 += 1-metrics.r2_score(y_true=target,y_pred=m.get_values(target_node).flat[indices])
+                loss0 = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node).flat[indices],squared=False)/mean
+
+            else:
+                #loss0 += 1-metrics.r2_score(y_true=target,y_pred=m.get_values(target_node))
+                loss0 = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node),squared=False)/mean
 
         loss1 = loss0
 
@@ -212,10 +218,14 @@ class model:
                 m.simulate(*simulate_kwargs)
 
                 try:
-                    if indices is not None:
-                        l = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node)[indices],squared=False)
-                    else:
-                        l = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node),squared=False)
+                    l = 0
+                    for target,target_node,mean in zip(targets,target_nodes,averages):
+                        if indices is not None:
+                            #l += 1-metrics.r2_score(y_true=target,y_pred=m.get_values(target_node).flat[indices])
+                            l += metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node)[indices],squared=False)/mean
+                        else:
+                            #l += 1-metrics.r2_score(y_true=target,y_pred=m.get_values(target_node))
+                            l += metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node),squared=False)/mean
                     if l < loss1:
                         new_values[j].const = use_values[j].const
                         loss1 = l
@@ -247,13 +257,13 @@ class general_case:
         self.initial_state = copy.deepcopy(initial_state)
         self.starting_points = starting_points
 
-    def _fit(self,target,target_node,n_epochs,initial_parameters,indices = None,simulate_kwargs=None,start_deltas=None):
+    def _fit(self,targets,target_nodes,n_epochs,initial_parameters,indices = None,simulate_kwargs=None,start_deltas=None):
         """
         _fit is used to apply the fit method to each starting point
         """
-        return model(initial_parameters).fit(target,target_node,n_epochs,indices,simulate_kwargs,start_deltas)
+        return model(initial_parameters).fit(targets,target_nodes,n_epochs,indices,simulate_kwargs,start_deltas)
 
-    def fit(self,target,target_node,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
+    def fit(self,targets,target_nodes,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
         """
         This method uses multiprocessing to simulteneously fit multiple starting points.
         It takes in the same arguments as the fit method for a model.
@@ -263,7 +273,7 @@ class general_case:
         candidates = []
          
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = [executor.submit(self._fit,target,target_node,n_epochs,i,indices,simulate_kwargs,start_deltas) for i in self.starting_points]
+            results = [executor.submit(self._fit,targets,target_nodes,n_epochs,i,indices,simulate_kwargs,start_deltas) for i in self.starting_points]
 
         for f in concurrent.futures.as_completed(results):
             candidates.append(f.result())
