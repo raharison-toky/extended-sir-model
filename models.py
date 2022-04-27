@@ -78,7 +78,7 @@ class graph:
         """
         initial = {i.name:i.get_values()[-1] for i in self.nodes.values()}
         initial[None] = 0
-        final = {i.name:i.get_values()[-1] for i in self.nodes.values()}
+        final = {i.name:(i.get_values()[-1] if i.coeff == False else 0)  for i in self.nodes.values()}
         final[None] = 0
 
         for i in self.vertices.values():
@@ -105,12 +105,16 @@ class graph:
         for i in range(steps):
             self.step()
 
-    def plot_all(self,dt):
+    def plot_all(self,dt,nodes=[]):
         """
         Method that takes in the value of dt and plots the values of all nodes over time.
         """
+        if nodes == []:
+            selected = self.nodes.values()
+        else:
+            selected = [self.nodes[i] for i in nodes]
         t = [dt * i for i in range(self.steps +1)]
-        for i in self.nodes.values():
+        for i in selected:
             plt.plot(t,i.get_values(),label=i.name)
 
 class node:
@@ -119,13 +123,14 @@ class node:
     Class for a node that is meant to be added to a graph object.
     """
 
-    def __init__(self,name,tag,start=0) -> None:
+    def __init__(self,name,tag,start=0,coeff=False) -> None:
         """
         The init of a node requires a name, a tag, and an initial value.
         """
         self.name = name
         self.tag = tag
         self.values = [start]
+        self.coeff = coeff
 
     def add_value(self,value):
         """

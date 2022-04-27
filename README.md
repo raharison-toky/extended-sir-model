@@ -3,3 +3,9 @@
 ## Features
 - general classes for solving differential equations with Euler's method
 - general class for finding the coefficients in problems like the SIR models
+
+## Example
+
+![image](secondwave.png)
+
+SIR model that was made to fit the peak of the second wave in Quebec province.
