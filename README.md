@@ -8,7 +8,7 @@
 
 ![image](firstwave.png)
 
-SIR model that was made to fit the peak of the second wave in Quebec province.
+SIR model that was made to fit the peak of the first wave in Quebec province.
 
 ![image](secondwave.png)
 

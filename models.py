@@ -1,3 +1,4 @@
+from re import L
 import numpy as np
 from matplotlib import pyplot as plt
 import random
@@ -169,7 +170,7 @@ class model:
         self.initial_state = copy.deepcopy(initial_state)
         self.parameters = self.initial_state.vertices
 
-    def fit(self,targets,target_nodes,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None):
+    def fit(self,targets,target_nodes,n_epochs,indices = None,simulate_kwargs=None,start_deltas=None,vertices = []):
         """
         This method requires target values, the name of the node for target values, and a number of epochs.
         It first finds an initial loss between the prediction of the initial_state and the target.
@@ -198,15 +199,18 @@ class model:
         for target,target_node,mean in zip(targets,target_nodes,averages):
             if indices is not None:
                 #loss0 += 1-metrics.r2_score(y_true=target,y_pred=m.get_values(target_node).flat[indices])
-                loss0 = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node).flat[indices],squared=False)/mean
+                loss0 += metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node).flat[indices],squared=False)/mean
 
             else:
                 #loss0 += 1-metrics.r2_score(y_true=target,y_pred=m.get_values(target_node))
-                loss0 = metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node),squared=False)/mean
+                loss0 += metrics.mean_squared_error(y_true=target,y_pred=m.get_values(target_node),squared=False)/mean
 
         loss1 = loss0
 
         print(f"starting loss: {loss1}")
+
+        if vertices == []:
+            vertices = new_values.keys()
         
         for i in range(n_epochs):
             for j in new_values.keys():
