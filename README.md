@@ -2,7 +2,7 @@
 
 ## Features
 - general classes for modeling differential equations problems with Euler's method
-- general class for finding the coefficients in problems like the SIR models
+- general classes for finding the coefficients in problems like the SIR models
 
 ## Examples
 
