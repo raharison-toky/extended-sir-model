@@ -15,6 +15,9 @@
 
 ## Examples
 
+- [In-depth notebook example](https://colab.research.google.com/drive/1U_FHT6IdJVn3B-b5VOpcC0w_RSVhtgL-?usp=sharing)
+
+
 ![image](firstwave.png)
 
 SIR model that was made to fit the peak of the first wave in Quebec province.
@@ -22,3 +25,4 @@ SIR model that was made to fit the peak of the first wave in Quebec province.
 ![image](secondwave.png)
 
 SIR model that was made to fit the peak of the second wave in Quebec province.
+
